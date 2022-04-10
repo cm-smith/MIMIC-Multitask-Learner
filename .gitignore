@@ -1,0 +1,7 @@
+# Data
+*.csv
+data/
+
+# Python
+*.pyc
+
