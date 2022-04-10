@@ -1,6 +1,6 @@
 # MIMIC Multitask Learner
 
-This project emulates an existing model by Kaji and team in their paper ["An
+This project emulates an existing model by Kaji and team in their 2019 paper ["An
 attention based deep learning model of clinical events in the intensive care
 unit"](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0211057)
 ([repo](https://github.com/deepak-kaji/mimic-lstm)).
@@ -23,9 +23,9 @@ We will use The Medical Information Mart for Intensive Care III (MIMIC-III) data
 
 ## References
 
-[1] Johnson, A., Pollard, T., Shen, L. et al. MIMIC-III, a freely accessible critical care database. Sci Data 3, 160035 (2016). https://doi.org/10.1038/sdata.2016.35.
-[2] Hou, N., Li, M., He, L. et al. Predicting 30-days mortality for MIMIC-III patients with sepsis-3: a machine learning approach using XGboost. J Transl Med 18, 462 (2020). https://doi.org/10.1186/s12967-020-02620-5.
-[3] Kaji, Deepak A., et al. An attention based deep learning model of clinical events in the intensive care unit. PloS one 14.2 (2019): e0211057.
-[4] Harutyunyan, H., Khachatrian, H., Kale, D.C. et al. Multitask learning and benchmarking with clinical time series data. Sci Data 6, 96 (2019). https://doi.org/10.1038/s41597-019-0103-9.
+1. Johnson, A., Pollard, T., Shen, L. et al. MIMIC-III, a freely accessible critical care database. Sci Data 3, 160035 (2016). https://doi.org/10.1038/sdata.2016.35.
+2. Hou, N., Li, M., He, L. et al. Predicting 30-days mortality for MIMIC-III patients with sepsis-3: a machine learning approach using XGboost. J Transl Med 18, 462 (2020). https://doi.org/10.1186/s12967-020-02620-5.
+3. Kaji, Deepak A., et al. An attention based deep learning model of clinical events in the intensive care unit. PloS one 14.2 (2019): e0211057.
+4. Harutyunyan, H., Khachatrian, H., Kale, D.C. et al. Multitask learning and benchmarking with clinical time series data. Sci Data 6, 96 (2019). https://doi.org/10.1038/s41597-019-0103-9.
 
 
