@@ -2,6 +2,12 @@
 *.csv
 data/
 
+# Project files
+.DS_Store
+.idea/
+.tmp.driveupload/
+.tmp.drivedownload/
+
 # Python
 *.pyc
 
