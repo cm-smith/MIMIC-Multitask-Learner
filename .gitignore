@@ -7,6 +7,7 @@ data/
 .idea/
 .tmp.driveupload/
 .tmp.drivedownload/
+.ipynb_checkpoints/
 
 # Python
 *.pyc

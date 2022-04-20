@@ -2,40 +2,95 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-def fetch_data(loc="data/CHARTEVENTS_reduced_24_hour_blocks_plus_admissions_plus_patients_plus_scripts_plus_icds_plus_notes.csv"):
+def get_mimic_data(loc="data/CHARTEVENTS_reduced_24_hour_blocks_plus_admissions_plus_patients_plus_scripts_plus_icds_plus_notes.csv"):
     print("Reading in MIMIC data at the HADMI_ID/HADMID_DAY-level")
     df = pd.read_csv(loc)
     assert sum(df.groupby(['HADM_ID', 'HADMID_DAY']).size().values) == df.shape[0]
+    print("Fetched data of shape:", df.shape)
     return df
+
+def filter_mimic_day1(df):
+    print("Filtering only on day 1 in the ICU")
+    df.loc[:, 'icu_day'] = df.sort_values(['HADM_ID', 'HADMID_DAY']).groupby(['HADM_ID']).cumcount() + 1
+    day1_df = df[df['icu_day'] == 1].drop('icu_day', axis=1)
+    #day1_df = df.groupby('HADM_ID').filter(lambda x: x['icu_day'].max() <= 1.).first().reset_index()
+    print("Baseline data shape:", day1_df.shape)
+    # Check that the resulting data has only 1 unique patient per row
+    assert day1_df['HADM_ID'].nunique() == day1_df.shape[0]
+    return day1_df
 
 class MimicData:
     def __init__(self, df):
-        self.df = df
-        self.drop_cols = ['HADM_ID', 'SUBJECT_ID', 'HADMID_DAY']
-        self.__icu_day()   # Append 'icu_day' to data frame
+        self.df = df.copy()
+        self.drop_cols = ['HADM_ID', 'SUBJECT_ID', 'HADMID_DAY', 'DOB', 'ADMITTIME']
+        #'sepsis_points', 'vancomycin', 'HADM_ID', 'SUBJECT_ID', 'YOB', , 'Sepsis',
+        #                  'day_counts', 'HADMID_DAY']
+        self.target = None
 
-    def __icu_day(self):
-        # Ascending by default
-        self.df.loc[:, 'icu_day'] = self.df.sort_values(['HADM_ID', 'HADMID_DAY']).groupby(['HADM_ID']).cumcount() + 1
+    def __check_target(self):
+        assert self.target is not None, "Target not defined"
 
-    def get_baseline_data(self):
-        print("Dropping people with only 1 day in the ICU")
-        day1_df = self.df.groupby('HADM_ID').filter(lambda x: x['icu_day'].max() <= 1.).first().reset_index()
-        return day1_df
+    def __check_train_test(self):
+        assert self.train is not None, "Train/test do not exist; please run MimicData.split_train_test()"
 
-    def get_train_test(self, test_split=0.3, drop_cols=True):
-        print("Splitting data with %.2f%% test split" % (test_split*100))
-        train, test = train_test_split(self.df, test_size=test_split)
-        if drop_cols:
-            drop_col_list = [col for col in self.drop_cols if col in train.columns]
-            ignore_list = set(self.drop_cols) - set(drop_col_list)
-            if len(ignore_list) > 0:
-                print("Some columns not found (ignored):", ignore_list)
+    def __check_numeric_cols(self, df=None):
+        if df is None: df = self.df
+        non_numeric_cols = {col: typ for col, typ in zip(df.columns.tolist(), df.dtypes.tolist())
+                            if not np.issubdtype(typ, np.number)}
+        if len(non_numeric_cols):
+            print("WARNING: Non-numeric columns identified:", non_numeric_cols)
+        return
+
+    def get_feats(self, df=None, verbose=False):
+        if df is None: df = self.df
+        drop_col_list = [col for col in self.drop_cols+[self.target] if col in df.columns]
+        ignore_list = set(self.drop_cols) - set(drop_col_list)
+        if len(ignore_list) > 0 and verbose:
+            print("Some columns not found (ignored):", ignore_list)
+        X = df.drop(drop_col_list, axis=1)
+        self.__check_numeric_cols(X)
+        if verbose:
             print("Dropping columns:", drop_col_list)
-            train.drop(drop_col_list, axis=1, inplace=True)
-        print("Train data shape:", train.shape)
-        print("Test data shape:", test.shape)
-        return train, test
+            print("Shape of X features:", X.shape)
+        return X
+
+    def get_train_feats(self):
+        self.__check_train_test()
+        X_train = self.get_feats(df=self.train, verbose=True)
+        return X_train
+
+    def get_train_target(self):
+        self.__check_target()
+        self.__check_train_test()
+        y_train = self.train[self.target]
+        return y_train
+
+    def get_test_feats(self):
+        self.__check_train_test()
+        X_test = self.get_feats(df=self.test)
+        return X_test
+
+    def get_test_target(self):
+        self.__check_target()
+        self.__check_train_test()
+        y_test = self.test[self.target]
+        return y_test
+
+    def split_train_test(self, test_split=0.3, random_state=0, verbose=True, **kwargs):
+        if self.target is not None: stratify = self.df[[self.target]]
+        else: stratify = None
+        self.train, self.test = train_test_split(self.df, test_size=test_split, random_state=random_state,
+                                                 stratify=stratify, **kwargs)
+        if verbose:
+            print("Splitting data with %.2f%% test split" % (test_split*100))
+            print("Train data has shape:", self.train.shape)
+            print("Test data shape:", self.test.shape)
+            if stratify is not None:
+                print("Stratified by target variable:", self.target)
+                print("%d/%d events in train; %d/%d events in test" %
+                      (self.train[self.train[self.target]==1].shape[0], self.train.shape[0],
+                       self.test[self.test[self.target]==1].shape[0], self.test.shape[0]))
+        return
 
 class MimicDataMI(MimicData):
     def __init__(self, df):
@@ -44,17 +99,19 @@ class MimicDataMI(MimicData):
         #                  'CKD', 'hr_sepsis', 'respiratory rate_sepsis', 'wbc_sepsis', 'temperature f_sepsis',
         #                  'sepsis_points', 'vancomycin', 'HADM_ID', 'SUBJECT_ID', 'YOB', 'ADMITYEAR', 'DOB', 'Sepsis',
         #                  'day_counts', 'HADMID_DAY']
+        self.target = 'MI'
         self.__append_mi_outcome()
 
     def __append_mi_outcome(self):
-        self.df.loc[:, 'MI'] = ((self.df['troponin'] > 0.4) & (self.df['CKD'] == 0)).apply(lambda x: int(x))
+        self.df.loc[:, self.target] = ((self.df['troponin'] > 0.4) & (self.df['CKD'] == 0)).apply(lambda x: int(x))
         print("Total MI events:")
-        print(self.df['MI'].value_counts())
+        print(self.df[self.target].value_counts())
         self.drop_cols = self.drop_cols + ['troponin', 'troponin_std', 'troponin_min', 'troponin_max']
 
 class MimicDataSepsis(MimicData):
     def __init__(self, df):
         MimicData.__init__(self, df)
+        self.target = 'Sepsis'
         self.__append_sepsis_outcome()
 
     ''' White blood cell (WBC) critical values
@@ -82,11 +139,11 @@ class MimicDataSepsis(MimicData):
         self.df.loc[:, 'temperature f_sepsis'] = self.df['temperature (F)'].apply(self.__temp_crit)
         self.df.loc[:, 'sepsis_points'] = (self.df['hr_sepsis'] + self.df['respiratory rate_sepsis']
                                       + self.df['wbc_sepsis'] + self.df['temperature f_sepsis'])
-        self.df.loc[:, 'Sepsis'] = ((self.df['sepsis_points'] >= 2) & (self.df['Infection'] == 1)).apply(lambda x: int(x))
-        self.df.loc[:, 'Sepsis'].fillna(0)
+        self.df.loc[:, self.target] = ((self.df['sepsis_points'] >= 2) & (self.df['Infection'] == 1)).apply(lambda x: int(x))
+        self.df.loc[:, self.target].fillna(0)
         print("Total sepsis events:")
-        print(self.df.loc[:, 'Sepsis'].value_counts())
-        self.drop_cols = self.drop_cols + ['hr_sepsis', 'respiratory rate_sepsis', 'wbc_sepsis', 'temperature f_sepsis', 'sepsis_points', 'Sepsis']
+        print(self.df.loc[:, self.target].value_counts())
+        self.drop_cols = self.drop_cols + ['hr_sepsis', 'respiratory rate_sepsis', 'wbc_sepsis', 'temperature f_sepsis', 'sepsis_points']
 
 ''' Meant to deal with padding for an RNN when keras.preprocessing.pad_sequences fails
 Refactored code from Deepak Kaji (2018)
@@ -104,7 +161,6 @@ class PadSequences(object):
         df = df.groupby('HADM_ID').filter(lambda group: len(group) > lb).reset_index(drop=True)
         df = df.groupby('HADM_ID').apply(lambda group: group[0:time_steps]).reset_index(drop=True)
         df = df.groupby('HADM_ID').apply(lambda group: pd.concat([group, pd.DataFrame(pad_value*np.ones((time_steps-len(group), len(df.columns))), columns=df.columns)], axis=0)).reset_index(drop=True)
-
         return df
 
     ''' Performs Z Score Normalization for 3rd order tensors
