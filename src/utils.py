@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 def get_mimic_data(loc="data/CHARTEVENTS_reduced_24_hour_blocks_plus_admissions_plus_patients_plus_scripts_plus_icds_plus_notes.csv"):
     print("Reading in MIMIC data at the HADMI_ID/HADMID_DAY-level")
     df = pd.read_csv(loc)
-    assert sum(df.groupby(['HADM_ID', 'HADMID_DAY']).size().values) == df.shape[0]
+    assert sum(df.groupby(['HADM_ID', 'HADMID_DAY']).size().values) == df.shape[0], 'ERROR: Not at the patient-day level'
     print("Fetched data of shape:", df.shape)
     return df
 
@@ -15,17 +15,16 @@ def filter_mimic_day1(df):
     day1_df = df[df['icu_day'] == 1].drop('icu_day', axis=1)
     #day1_df = df.groupby('HADM_ID').filter(lambda x: x['icu_day'].max() <= 1.).first().reset_index()
     print("Baseline data shape:", day1_df.shape)
-    # Check that the resulting data has only 1 unique patient per row
-    assert day1_df['HADM_ID'].nunique() == day1_df.shape[0]
+    assert day1_df['HADM_ID'].nunique() == day1_df.shape[0], "ERROR: Data not 1 unique person per row as expected"
     return day1_df
 
 class MimicData:
-    def __init__(self, df):
+    def __init__(self, df, impute_outliers=True):
         self.df = df.copy()
         self.drop_cols = ['HADM_ID', 'SUBJECT_ID', 'HADMID_DAY', 'DOB', 'ADMITTIME']
-        #'sepsis_points', 'vancomycin', 'HADM_ID', 'SUBJECT_ID', 'YOB', , 'Sepsis',
-        #                  'day_counts', 'HADMID_DAY']
         self.target = None
+        if impute_outliers:
+            self.impute_outliers()
 
     def __check_target(self):
         assert self.target is not None, "Target not defined"
@@ -39,6 +38,17 @@ class MimicData:
                             if not np.issubdtype(typ, np.number)}
         if len(non_numeric_cols):
             print("WARNING: Non-numeric columns identified:", non_numeric_cols)
+        return
+
+    def impute_outliers(self, impute_cols=['AGE'], impute_percentile=0.99):
+        for col in impute_cols:
+            assert col in self.df.columns, 'ERROR: Column "'+col+'" to trim does not exist'
+            outlier_threshold = self.df[col].quantile(impute_percentile)
+            impute_rows = self.df[col] >= outlier_threshold
+            impute_median = self.df[col].quantile(0.5)
+            self.df.loc[impute_rows, col] = impute_median
+            print("Outliers (>%.1f%%) in '%s' above %.1f imputed with median: %.2f" %
+                  (impute_percentile*100, col, outlier_threshold, impute_median))
         return
 
     def get_feats(self, df=None, verbose=False):
@@ -196,8 +206,3 @@ class PadSequences(object):
         matrix = np.divide(np.subtract(matrix, mins), np.subtract(maxs,mins), where=(np.nanmax(matrix,axis=0) != 0))
         matrix[bool_matrix] = pad_value
         return matrix
-
-if __name__ == '__main__':
-    df = fetch_data()
-    append_mi_outcome(df)
-    append_sepsis_outcome(df)
