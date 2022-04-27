@@ -4,7 +4,7 @@ from keras import backend as K
 from keras.models import Model, Input
 from keras.layers import Masking, TimeDistributed, multiply, Dense, LSTM, Permute, Reshape
 from tensorflow.keras import optimizers, metrics, models
-from lstm import attention_3d_block
+from src.lstm import attention_3d_block
 
 '''Architecture notes
 
