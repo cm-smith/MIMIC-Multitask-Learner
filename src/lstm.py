@@ -67,10 +67,12 @@ if __name__=="__main__":
     '''
     target = 'MI'
     drop_cols = drop_cols + ['troponin', 'troponin_std', 'troponin_min', 'troponin_max']
+    model_location = 'models/'+target.lower()+'_lstm'
     '''
 
     target = 'Sepsis'
     drop_cols = drop_cols + ['hr_sepsis', 'respiratory rate_sepsis', 'wbc_sepsis', 'temperature f_sepsis', 'sepsis_points']
+    model_location = 'models/'+target.lower()+'_lstm'
 
     '''
     # Train LSTM binary classifier
@@ -79,7 +81,8 @@ if __name__=="__main__":
     train_df = train_df.fillna(0)
     x_train, y_train = get_mimic_lstm_matrices(train_df, target, time_steps)
     model, history = train_mimic_lstm(x_train, y_train, batch_size=20, epochs=10)
-    model.save('models/'+target.lower()+'_lstm')
+    model.save(model_location)
+    print("Model saved:", model_location)
     '''
 
     # Evaluate LSTM on test data
@@ -87,7 +90,7 @@ if __name__=="__main__":
     test_df.drop(columns=drop_cols, inplace=True)
     test_df = test_df.fillna(0)
     x_test, y_test = get_mimic_lstm_matrices(test_df, target, time_steps)
-    model = models.load_model('models/'+target.lower()+'_lstm')
+    model = models.load_model(model_location)
     print("Evaluating saved model on test data:")
     model.evaluate(x_test, y_test)
 
