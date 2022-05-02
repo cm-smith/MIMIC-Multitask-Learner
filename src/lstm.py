@@ -43,6 +43,7 @@ def train_mimic_lstm(X, y, batch_size=20, epochs=10, verbose=True):
     METRICS = [
         metrics.BinaryAccuracy(name='accuracy'),
         metrics.AUC(name='auc'),
+        metrics.AUC(name='prc', curve='PR')
     ]
     RMS = optimizers.RMSprop(learning_rate=0.001, rho=0.9, epsilon=1e-08)
     model.compile(optimizer=RMS, loss='binary_crossentropy', metrics=METRICS)
@@ -78,7 +79,6 @@ if __name__=="__main__":
     model_location = 'models/'+target.lower()+'_lstm'
     '''
 
-    '''
     # Train LSTM binary classifier
     train_df = pd.read_csv('data/train_padded.csv')
     train_df.drop(columns=drop_cols, inplace=True)
@@ -88,7 +88,6 @@ if __name__=="__main__":
     model.save(model_location)
     print("Model saved:", model_location)
 
-    '''
     # Evaluate LSTM on test data
     test_df = pd.read_csv('data/test_padded.csv')
     test_df.drop(columns=drop_cols, inplace=True)
@@ -97,3 +96,4 @@ if __name__=="__main__":
     model = models.load_model(model_location)
     print("Evaluating saved model on test data:")
     model.evaluate(x_test, y_test)
+

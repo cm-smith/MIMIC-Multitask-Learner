@@ -52,7 +52,6 @@ if __name__=="__main__":
     time_steps = 14
     model_location = 'models/multitask_' + '_'.join([target.lower() for target in targets])
 
-    '''
     # Get data and perform preprocessing
     train_df = pd.read_csv('data/train_padded.csv')
     train_df.drop(columns=drop_cols, inplace=True)
@@ -79,7 +78,7 @@ if __name__=="__main__":
 
     # COMPILE MODEL WITH COMBINED OUTPUTS AND OUTCOME-SPECIFIC METRICS
     model = Model(inputs=input_layer, outputs=[mi_pred, sepsis_pred, death_pred])
-    METRICS = {target.lower(): [metrics.BinaryAccuracy(name='accuracy'), metrics.AUC(name='auc')] for target in targets}
+    METRICS = {target.lower(): [metrics.BinaryAccuracy(name='accuracy'), metrics.AUC(name='auc'), metrics.AUC(name='prc', curve='PR')] for target in targets}
     RMS = optimizers.RMSprop(learning_rate=0.001, rho=0.9, epsilon=1e-08)
     model.compile(optimizer=RMS, loss=['binary_crossentropy'] * len(METRICS), metrics=METRICS)
     model.summary()
@@ -89,7 +88,6 @@ if __name__=="__main__":
     model.save(model_location)
     print("Model saved:", model_location)
 
-    '''
     # EVALUATE MODEL
     test_df = pd.read_csv('data/test_padded.csv')
     test_df.drop(columns=drop_cols, inplace=True)
@@ -99,3 +97,4 @@ if __name__=="__main__":
     model = models.load_model(model_location)
     print("Evaluating test data using saved model loaded from:", model_location)
     model.evaluate(x_test, y_dict)
+
