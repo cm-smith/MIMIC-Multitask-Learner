@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-def get_mimic_data(loc="data/CHARTEVENTS_reduced_24_hour_blocks_plus_admissions_plus_patients_plus_scripts_plus_icds_plus_notes.csv"):
+def get_mimic_data(loc="data/CHARTEVENTS_reduced_24_hour_blocks_plus_admissions_plus_patients_plus_scripts_plus_icds_plus_notes_plus_death.csv"):
     print("Reading in MIMIC data at the HADMI_ID/HADMID_DAY-level")
     df = pd.read_csv(loc)
     assert sum(df.groupby(['HADM_ID', 'HADMID_DAY']).size().values) == df.shape[0], 'ERROR: Not at the patient-day level'

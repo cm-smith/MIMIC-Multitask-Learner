@@ -64,15 +64,19 @@ if __name__=="__main__":
     time_steps = 14
 
     # Model-specific params (choose one of these)
+    target = 'DEATH'
+    drop_cols = drop_cols + ['DEATHTIME']
+    model_location = 'models/'+target.lower()+'_lstm'
+
     '''
     target = 'MI'
     drop_cols = drop_cols + ['troponin', 'troponin_std', 'troponin_min', 'troponin_max']
     model_location = 'models/'+target.lower()+'_lstm'
-    '''
-
+    
     target = 'Sepsis'
     drop_cols = drop_cols + ['hr_sepsis', 'respiratory rate_sepsis', 'wbc_sepsis', 'temperature f_sepsis', 'sepsis_points']
     model_location = 'models/'+target.lower()+'_lstm'
+    '''
 
     '''
     # Train LSTM binary classifier
@@ -83,8 +87,8 @@ if __name__=="__main__":
     model, history = train_mimic_lstm(x_train, y_train, batch_size=20, epochs=10)
     model.save(model_location)
     print("Model saved:", model_location)
-    '''
 
+    '''
     # Evaluate LSTM on test data
     test_df = pd.read_csv('data/test_padded.csv')
     test_df.drop(columns=drop_cols, inplace=True)
@@ -93,4 +97,3 @@ if __name__=="__main__":
     model = models.load_model(model_location)
     print("Evaluating saved model on test data:")
     model.evaluate(x_test, y_test)
-

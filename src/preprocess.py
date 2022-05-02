@@ -438,6 +438,37 @@ class MimicParser(object):
         df2['ct_angio'] = df2['HADM_ID'].apply(lambda x: 1 if x in hadm_id_set else 0)
         df2.to_csv(file_name[0:-4] + '_plus_notes.csv', index=False)
 
+    def add_death(self, file_name):
+        # Read in admissions data
+        df = pd.read_csv(ROOT+'ADMISSIONS.csv')
+        df[['DEATHTIME', 'ADMITTIME']] = df[['DEATHTIME', 'ADMITTIME']].apply(pd.to_datetime)
+        deathtime_dict = dict(zip(df['HADM_ID'], df['DEATHTIME']))
+
+        # Replace DF above now that we have the dictionary of interest (saves RAM!)
+        df = pd.read_csv(file_name)
+        df['DEATHTIME'] = df['HADM_ID'].apply(lambda x: map_dict(x, deathtime_dict))
+        df['DEATH'] = 0
+        df.loc[df[df['DEATHTIME'].notnull()].groupby('HADM_ID').tail(1).index, 'DEATH'] = 1
+        assert df['DEATH'].sum() == len(df.loc[~df['DEATHTIME'].isnull(), 'HADM_ID'].unique())
+
+        '''
+        # ALIGN DEATH TIME WITH DAY IN DATA ... HOWEVER, MISALIGNMENTS OCCUR OFTEN
+        
+        # First DF
+        df['DEATH'] = ((df['DEATHTIME'] - df['ADMITTIME']).dt.days <= 30) * 1
+        df['DEATH'] = df['HADM_ID'].apply(lambda x: map_dict(x, death_dict))
+        death_dict = dict(zip(df['HADM_ID'], df['DEATH']))
+        
+        # Second DF
+        dfilt = df['DEATH'] == 1
+        df['HADMID_DEATH'] = '0'
+        df.loc[dfilt, 'HADMID_DEATH'] = df.loc[dfilt, 'HADM_ID'].astype('str') + '_' +\
+                                        df.loc[dfilt, 'DEATHTIME'].str.split(' ').apply(lambda x: x[0])
+        df.loc[df['HADMID_DAY'] != df['HADMID_DEATH'], 'DEATH'] = 0
+        del df['daily HADMID_DEATH']
+        '''
+        df.to_csv(file_name[0:-4] + '_plus_death.csv', index=False)
+
 if __name__ == '__main__':
     pid = ParseItemID()
     pid.build_dictionary()
@@ -453,5 +484,5 @@ if __name__ == '__main__':
     mp.add_prescriptions(ROOT + PROCESSED_DIR + FILE_STR + 
                          '_24_hour_blocks_plus_admissions_plus_patients.csv')
     mp.add_icd_infect(ROOT + PROCESSED_DIR + FILE_STR + '_24_hour_blocks_plus_admissions_plus_patients_plus_scripts.csv') 
-    mp.add_notes(ROOT + PROCESSED_DIR + FILE_STR + '_24_hour_blocks_plus_admissions_plus_patients_plus_scripts_plus_icds.csv')    
-
+    mp.add_notes(ROOT + PROCESSED_DIR + FILE_STR + '_24_hour_blocks_plus_admissions_plus_patients_plus_scripts_plus_icds.csv')
+    mp.add_death(ROOT + FILE_STR + '_24_hour_blocks_plus_admissions_plus_patients_plus_scripts_plus_icds_plus_notes.csv')

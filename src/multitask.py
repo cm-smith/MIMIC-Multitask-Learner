@@ -4,7 +4,7 @@ from keras import backend as K
 from keras.models import Model, Input
 from keras.layers import Masking, TimeDistributed, multiply, Dense, LSTM, Permute, Reshape
 from tensorflow.keras import optimizers, metrics, models
-from src.lstm import attention_3d_block
+from lstm import attention_3d_block
 
 '''Architecture notes
 
@@ -43,14 +43,16 @@ if __name__=="__main__":
     assert os.path.isdir('models'), "Please create 'models/' directory before running"
 
     # Global params
-    targets = ['MI', 'Sepsis']
-    #targets = ['MI', 'Sepsis', 'Death']
+    #targets = ['MI', 'Sepsis']
+    targets = ['MI', 'Sepsis', 'DEATH']
     drop_cols = ['HADM_ID', 'SUBJECT_ID', 'HADMID_DAY', 'DOB', 'ADMITTIME'] +\
                 ['hr_sepsis', 'respiratory rate_sepsis', 'wbc_sepsis', 'temperature f_sepsis', 'sepsis_points'] + \
-                ['troponin', 'troponin_std', 'troponin_min', 'troponin_max']
+                ['troponin', 'troponin_std', 'troponin_min', 'troponin_max'] +\
+                ['DEATHTIME']
     time_steps = 14
     model_location = 'models/multitask_' + '_'.join([target.lower() for target in targets])
 
+    '''
     # Get data and perform preprocessing
     train_df = pd.read_csv('data/train_padded.csv')
     train_df.drop(columns=drop_cols, inplace=True)
@@ -72,11 +74,11 @@ if __name__=="__main__":
     sepsis_pred = TimeDistributed(Dense(1, activation="sigmoid"), name='sepsis')(sepsis_layers)
 
     # DEATH LAYERS
-    #death_layers = Dense(128, activation='relu', name='death_dense')(shared_layers)
-    #death_pred = TimeDistributed(Dense(1, activation="sigmoid"), name='death')(death_layers)
+    death_layers = Dense(128, activation='relu', name='death_dense')(shared_layers)
+    death_pred = TimeDistributed(Dense(1, activation="sigmoid"), name='death')(death_layers)
 
     # COMPILE MODEL WITH COMBINED OUTPUTS AND OUTCOME-SPECIFIC METRICS
-    model = Model(inputs=input_layer, outputs=[mi_pred, sepsis_pred])
+    model = Model(inputs=input_layer, outputs=[mi_pred, sepsis_pred, death_pred])
     METRICS = {target.lower(): [metrics.BinaryAccuracy(name='accuracy'), metrics.AUC(name='auc')] for target in targets}
     RMS = optimizers.RMSprop(learning_rate=0.001, rho=0.9, epsilon=1e-08)
     model.compile(optimizer=RMS, loss=['binary_crossentropy'] * len(METRICS), metrics=METRICS)
@@ -97,4 +99,3 @@ if __name__=="__main__":
     model = models.load_model(model_location)
     print("Evaluating test data using saved model loaded from:", model_location)
     model.evaluate(x_test, y_dict)
-    '''
