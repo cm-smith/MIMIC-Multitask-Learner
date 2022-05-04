@@ -21,6 +21,22 @@ We will use LSTM RNNs for the primary prediction tasks to account for sequential
 
 We will use The Medical Information Mart for Intensive Care III (MIMIC-III) dataset for our project. MIMIC-III is a freely-available, single-center database consisting of deidentified health data of more than 60,000 hospital admissions to critical care units of the Beth Israel Deaconess Medical Center between 2001 and 2012 [1]. 53,423 of these admissions, covering 38,597 distinct adults patients, belong to patients aged 16 years or above while 7870 of the admission records are of neonates admitted between 2001 and 2008. The dataset consists of 26 data tables including information about all charted observations for patients, diagnoses, procedures done in units, laboratory tests performed and their results, intake of patients (e.g., intravenous medications, enteral feeding), outputs of patients, microbiology culture results, deidentified notes of ECG reports, radiology reports, and discharge summaries, and the admission and discharge dates of patients.
 
+## Running the code
+
+Note all scripts were run using Google Colab. For this reason, we do not track environment variables such as package versions.
+
+- **Process MIMIC data:** `python preprocess.py`
+    - At the start of the file, specify where the MIMIC files are (`ROOT`) and the subdirectory within this location where the processed data will be saved (`PROCESSED_DIR`). Make sure to create the latter before running the script.
+    - The following MIMIC data files are needed: `D_ITEMS.csv`, `PRESCRIPTIONS.csv`, `CHARTEVENTS.csv`, `ADMISSIONS.csv`, `PATIENTS.csv`, `MICROBIOLOGYEVENTS.csv`, `PROCEDURES_ICD.csv`, `NOTEEVENTS.csv`
+- **Pad data for sequence models:** `python padded_data.py`
+    - Writes padded data to `data/` folder
+    - Assumes all data files are in the `data/` folder of the main directory
+- **Train and evaluate LSTM modles:** `python lstm.py`
+    - In the `main()` function, specify the target of interest and associated information
+    - Saves and loads Keras models from `models/` directory
+- **Train and evaluate multi-task models:** `python multitask.py`
+    - Saves and loads Keras models from `models/` directory
+
 ## References
 
 1. Johnson, A., Pollard, T., Shen, L. et al. MIMIC-III, a freely accessible critical care database. Sci Data 3, 160035 (2016). https://doi.org/10.1038/sdata.2016.35.

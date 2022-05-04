@@ -5,8 +5,6 @@ import pickle
 import math
 import re
 import csv
-import concurrent.futures 
-import os
 from functools import reduce
 
 from operator import add
