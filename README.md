@@ -23,7 +23,7 @@ We will use The Medical Information Mart for Intensive Care III (MIMIC-III) data
 
 ## Running the code
 
-Note all scripts were run using Google Colab. For this reason, we do not track environment variables such as package versions.
+Note all scripts were run using Google Colab (See our Colab codes here: `MIMIC_Multitask_Learner.ipynb`). For this reason, we do not track environment variables such as package versions.
 
 - **Process MIMIC data:** `python preprocess.py`
     - At the start of the file, specify where the MIMIC files are (`ROOT`) and the subdirectory within this location where the processed data will be saved (`PROCESSED_DIR`). Make sure to create the latter before running the script.
